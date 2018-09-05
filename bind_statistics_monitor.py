@@ -51,29 +51,21 @@ def bind_statistics_json_download():
 # BINDのstatisticsをJSON形式でダウンロード
 bind_statistics_json = bind_statistics_json_download()
 
-#current_time = datetime.strptime(bind_statistics_json['current-time'], '%Y-%m-%dT%H:%M:%3N.%L')
-
-#print(current_time)
-
-#print (bind_statistics_json['boot-time'])
+# 
+current_time = datetime.strptime(bind_statistics_json['current-time'], '%Y-%m-%dT%H:%M:%S.%fZ')
+current_unix_time = current_time.strftime('%s')
 
 f = open("/home/naoto-izutsu/zabbix_sender_file.txt", 'w')
 
 for ELEMENT in ELEMENTS:
-#    print (ELEMENT)
     try:
         for k,v in bind_statistics_json[ELEMENT].items():
-#            print (k,v)
             if 'RESERVED' in k or re.match('[0-9][0-9]', k):
-                print ("skip RESERVED")
+                logger.info('skip RESERVED')
             else:
-                send_message = "zabbix_host bind_"+str(ELEMENT)+"_"+str(k)+" unixtime "+str(v)+"\n"
+                send_message = "zabbix_host bind_"+str(ELEMENT)+"_"+str(k)+" "+str(current_unix_time)+" "+str(v)+"\n"
                 f.write(send_message)
     except KeyError:
         print ("KeyError")
 
 f.close()
-
-#print(bind_statistics_json['boot-time'].strftime('%Y-%m-%d'))
-
-#print bind_statistics_json['boot-time']
