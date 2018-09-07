@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
+import configparser
 import logging
 import json
 import requests
@@ -12,6 +13,16 @@ import sys
 import re
 import subprocess
 
+# Load configuration
+inifile = configparser.SafeConfigParser()
+inifile.read('bind_statistics_monitor.ini', encoding='utf-8')
+LOG_PATH = inifile.get('Settings','LOG_PATH')
+BIND_STATISTICS_URL = inifile.get('Settings','BIND_STATISTICS_URL')
+ELEMENT = inifile.get('Settings', 'ELEMENT')
+ELEMENTS = ELEMENT.split()
+OUTPUT_ZABBIXSENDER_FILE = inifile.get('Settings', 'OUTPUT_ZABBIXSENDER_FILE')
+ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
+
 # ログの出力名を設定
 logger = logging.getLogger(__name__)
 
@@ -19,16 +30,12 @@ logger = logging.getLogger(__name__)
 logger.setLevel(20)
 
 # ログのファイル出力先を設定
-fh = logging.FileHandler('/home/naoto-izutsu/test.log')
+fh = logging.FileHandler(LOG_PATH)
 logger.addHandler(fh)
 
 # ログの出力形式の設定
 formatter = logging.Formatter('time:%(asctime)s\tlinenum:%(lineno)d\tseverity:%(levelname)s\tmsg:%(message)s')
 fh.setFormatter(formatter)
-
-# BIND Statistics関連の設定
-BIND_STATISTICS_URL = "http://127.0.0.1:8080/json"
-ELEMENTS = ['nsstats','opcodes','qtypes','rcodes']
 
 def bind_statistics_json_download():
     logger.info('Sending request to %s.', BIND_STATISTICS_URL)
@@ -55,7 +62,7 @@ current_unix_time = current_time.strftime('%s')
 logger.debug('current-time is %s.  It\'s %s in unixtime.', bind_statistics_json['current-time'], current_unix_time)
 
 # ZabbixSenderに食べさせるファイルを作る
-f = open("/home/naoto-izutsu/zabbix_sender_file.txt", 'w')
+f = open(OUTPUT_ZABBIXSENDER_FILE, 'w')
 
 for ELEMENT in ELEMENTS:
     logger.info('Getting value of %s.', ELEMENT)
@@ -71,13 +78,11 @@ for ELEMENT in ELEMENTS:
 
 f.close()
 
-# zabbix_senderコマンド組み立て
-zabbix_sender = '/usr/local/zabbix/bin/zabbix_sender -z localhost -i /home/naoto-izutsu/zabbix_sender_file.txt --with-timestamps'
-zabbix_senders = zabbix_sender.split()
-
+# zabbix_senderコマンドを実行する
+zabbix_senders = ZABBIX_SENDER.split()
 try:
     res = subprocess.check_call(zabbix_senders)
 except:
     logger.warning('execution failed.')
-    logger.warning('command:%s', zabbix_sender)
+    logger.warning('command:%s', ZABBIX_SENDER)
     logger.warning('command error:%s', res)
