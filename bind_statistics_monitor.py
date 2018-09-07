@@ -85,4 +85,3 @@ try:
 except:
     logger.warning('execution failed.')
     logger.warning('command:%s', ZABBIX_SENDER)
-    logger.warning('command error:%s', res)
