@@ -15,13 +15,16 @@ import subprocess
 
 # Load configuration
 inifile = configparser.SafeConfigParser()
-inifile.read('bind_statistics_monitor.ini', encoding='utf-8')
+inifile.read('/opt/tools/bind_statistics/conf/bind_statistics_monitor.ini', encoding='utf-8')
 LOG_PATH = inifile.get('Settings','LOG_PATH')
 BIND_STATISTICS_URL = inifile.get('Settings','BIND_STATISTICS_URL')
 ELEMENT = inifile.get('Settings', 'ELEMENT')
 ELEMENTS = ELEMENT.split()
 OUTPUT_ZABBIXSENDER_FILE = inifile.get('Settings', 'OUTPUT_ZABBIXSENDER_FILE')
+ZABBIX_SERVER = inifile.get('Settings', 'ZABBIX_SERVER')
+ZABBIX_HOST = inifile.get('Settings', 'ZABBIX_HOST')
 ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
+ZABBIX_SENDER_OPS = inifile.get('Settings', 'ZABBIX_SENDER_OPS')
 
 # ログの出力名を設定
 logger = logging.getLogger(__name__)
@@ -71,7 +74,7 @@ for ELEMENT in ELEMENTS:
             if 'RESERVED' in k or re.match('[0-9][0-9]', k):
                 logger.debug('The key %s was skipped.', k)
             else:
-                send_message = "zabbix_host bind_"+str(ELEMENT)+"_"+str(k)+" "+str(current_unix_time)+" "+str(v)+"\n"
+                send_message = str(ZABBIX_HOST)+" bind_"+str(ELEMENT)+"_"+str(k)+" "+str(current_unix_time)+" "+str(v)+"\n"
                 f.write(send_message)
     except KeyError:
         logger.info('There was no value corresponding to that %s.', ELEMENT)
@@ -79,7 +82,8 @@ for ELEMENT in ELEMENTS:
 f.close()
 
 # zabbix_senderコマンドを実行する
-zabbix_senders = ZABBIX_SENDER.split()
+ZABBIX_SENDER_CMD = str(ZABBIX_SENDER)+" -z "+str(ZABBIX_SERVER)+" -i "+str(OUTPUT_ZABBIXSENDER_FILE)+" "+str(ZABBIX_SENDER_OPS) 
+zabbix_senders = ZABBIX_SENDER_CMD.split()
 try:
     res = subprocess.check_call(zabbix_senders)
 except:
