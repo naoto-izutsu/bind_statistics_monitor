@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 import configparser
-from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, WARNING
+from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, INFO, WARNING
 import json
 import requests
 import datetime
@@ -43,13 +43,16 @@ def bind_statistics_json_download():
     try:
         response = requests.get(BIND_STATISTICS_URL, timeout=3)
     except requests.exceptions.ConnectionError:
-        logger.warning('Connection refused from %s.', BIND_STATISTICS_URL)
+        logger.error('Connection refused from %s.', BIND_STATISTICS_URL)
+        sys.exit()
+    except:
+        logger.error('exception occured during Connecting to %s.', BIND_STATISTICS_URL)
         sys.exit()
 
     if response.status_code != 200:
-        logger.warning('The bind statistics page did\'t respond correctly to the request. http status code is %s.', response.status_code)
-        print (BIND_STATISTICS_URL)
-        print (response)
+        logger.error('The bind statistics page did\'t respond correctly to the request. http status code is %s.', response.status_code)
+        logger.error('URL:%s', BIND_STATISTICS_URL)
+        logger.error('Response:%s', response)
         sys.exit()
 
     return response.json()
@@ -102,6 +105,9 @@ ZABBIX_SENDER_CMD = str(ZABBIX_SENDER)+" -z "+str(ZABBIX_SERVER)+" -i "+str(OUTP
 zabbix_senders = ZABBIX_SENDER_CMD.split()
 try:
     res = subprocess.check_call(zabbix_senders)
+    logger.info('zabbix_senders executed. %s', res)
 except:
     logger.warning('execution failed.')
     logger.warning('command:%s', ZABBIX_SENDER)
+    sys.exit()
+
