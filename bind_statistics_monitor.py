@@ -33,7 +33,7 @@ def set_logger(logFile, error_level):
         logger.warning('log file open error. %s', e)
         sys.exit()
     except:
-        logger.warning('set_log error.')
+        logger.warning('exception occured during file handler set.')
         sys.exit()
 
     return logger
@@ -69,12 +69,8 @@ ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
 ZABBIX_SENDER_OPS = inifile.get('Settings', 'ZABBIX_SENDER_OPS')
 
 
-if __name__ == '__main__':
-    # ログ設定
-    logger = set_logger(LOG_PATH, LOG_LEVEL)
-    # ログ出力を行う
-    logger.info('info')
-    logger.warn('warn')
+# ログ設定
+logger = set_logger(LOG_PATH, LOG_LEVEL)
 
 # BINDのstatisticsをJSON形式でダウンロード
 bind_statistics_json = bind_statistics_json_download()
