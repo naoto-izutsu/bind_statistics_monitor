@@ -26,13 +26,16 @@ def set_logger(logFile, error_level):
     # ファイル出力用ハンドラーを設定
     try:
         file_handler = FileHandler(logFile)
+        file_handler.setFormatter(log_format)
+        logger.addHandler(file_handler)
+    except PermissionError as e:
+        #logger.warning('log file open error.', exc_info=True)
+        logger.warning('log file open error. %s', e)
+        sys.exit()
     except:
-        logger.warning('log file open error.', exc_info=True)
+        logger.warning('set_log error.')
         sys.exit()
 
-    file_handler.setFormatter(log_format)
-    logger.addHandler(file_handler)
-    
     return logger
 
 def bind_statistics_json_download():
