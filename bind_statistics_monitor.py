@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 import configparser
-import logging
+from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, WARNING
 import json
 import requests
 import datetime
@@ -13,32 +13,27 @@ import sys
 import re
 import subprocess
 
-# Load configuration
-inifile = configparser.SafeConfigParser()
-inifile.read('/opt/tools/bind_statistics/conf/bind_statistics_monitor.ini', encoding='utf-8')
-LOG_PATH = inifile.get('Settings','LOG_PATH')
-BIND_STATISTICS_URL = inifile.get('Settings','BIND_STATISTICS_URL')
-ELEMENT = inifile.get('Settings', 'ELEMENT')
-ELEMENTS = ELEMENT.split()
-OUTPUT_ZABBIXSENDER_FILE = inifile.get('Settings', 'OUTPUT_ZABBIXSENDER_FILE')
-ZABBIX_SERVER = inifile.get('Settings', 'ZABBIX_SERVER')
-ZABBIX_HOST = inifile.get('Settings', 'ZABBIX_HOST')
-ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
-ZABBIX_SENDER_OPS = inifile.get('Settings', 'ZABBIX_SENDER_OPS')
+def set_logger(logFile, error_level):
+    # ログの出力名を設定
+    logger = getLogger(__name__)
 
-# ログの出力名を設定
-logger = logging.getLogger(__name__)
+    # ログレベルの設定
+    logger.setLevel(error_level)
 
-# ログレベルの設定
-logger.setLevel(20)
+    # ログの出力形式の設定
+    log_format = Formatter('time:%(asctime)s\tlinenum:%(lineno)d\tseverity:%(levelname)s\tmsg:%(message)s')
 
-# ログのファイル出力先を設定
-fh = logging.FileHandler(LOG_PATH)
-logger.addHandler(fh)
+    # ファイル出力用ハンドラーを設定
+    try:
+        file_handler = FileHandler(logFile)
+    except:
+        logger.warning('log file open error.', exc_info=True)
+        sys.exit()
 
-# ログの出力形式の設定
-formatter = logging.Formatter('time:%(asctime)s\tlinenum:%(lineno)d\tseverity:%(levelname)s\tmsg:%(message)s')
-fh.setFormatter(formatter)
+    file_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+    
+    return logger
 
 def bind_statistics_json_download():
     logger.info('Sending request to %s.', BIND_STATISTICS_URL)
@@ -55,6 +50,28 @@ def bind_statistics_json_download():
         sys.exit()
 
     return response.json()
+
+# Load configuration
+inifile = configparser.SafeConfigParser()
+inifile.read('/opt/tools/bind_statistics/conf/bind_statistics_monitor.ini', encoding='utf-8')
+LOG_PATH = inifile.get('Settings','LOG_PATH')
+LOG_LEVEL = inifile.get('Settings','LOG_LEVEL')
+BIND_STATISTICS_URL = inifile.get('Settings','BIND_STATISTICS_URL')
+ELEMENT = inifile.get('Settings', 'ELEMENT')
+ELEMENTS = ELEMENT.split()
+OUTPUT_ZABBIXSENDER_FILE = inifile.get('Settings', 'OUTPUT_ZABBIXSENDER_FILE')
+ZABBIX_SERVER = inifile.get('Settings', 'ZABBIX_SERVER')
+ZABBIX_HOST = inifile.get('Settings', 'ZABBIX_HOST')
+ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
+ZABBIX_SENDER_OPS = inifile.get('Settings', 'ZABBIX_SENDER_OPS')
+
+
+if __name__ == '__main__':
+    # ログ設定
+    logger = set_logger(LOG_PATH, LOG_LEVEL)
+    # ログ出力を行う
+    logger.info('info')
+    logger.warn('warn')
 
 # BINDのstatisticsをJSON形式でダウンロード
 bind_statistics_json = bind_statistics_json_download()
