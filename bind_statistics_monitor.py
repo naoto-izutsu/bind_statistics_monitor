@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 import configparser
-import logging
+from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, INFO, WARNING
 import json
 import requests
 import datetime
@@ -13,10 +13,55 @@ import sys
 import re
 import subprocess
 
+def set_logger(logFile, error_level):
+    # ログの出力名を設定
+    logger = getLogger(__name__)
+
+    # ログレベルの設定
+    logger.setLevel(error_level)
+
+    # ログの出力形式の設定
+    log_format = Formatter('time:%(asctime)s\tlinenum:%(lineno)d\tseverity:%(levelname)s\tmsg:%(message)s')
+
+    # ファイル出力用ハンドラーを設定
+    try:
+        file_handler = FileHandler(logFile)
+        file_handler.setFormatter(log_format)
+        logger.addHandler(file_handler)
+    except PermissionError as e:
+        #logger.warning('log file open error.', exc_info=True)
+        logger.warning('log file open error. %s', e)
+        sys.exit()
+    except:
+        logger.warning('exception occured during file handler set.')
+        sys.exit()
+
+    return logger
+
+def bind_statistics_json_download():
+    logger.info('Sending request to %s.', BIND_STATISTICS_URL)
+    try:
+        response = requests.get(BIND_STATISTICS_URL, timeout=3)
+    except requests.exceptions.ConnectionError:
+        logger.error('Connection refused from %s.', BIND_STATISTICS_URL)
+        sys.exit()
+    except:
+        logger.error('exception occured during Connecting to %s.', BIND_STATISTICS_URL)
+        sys.exit()
+
+    if response.status_code != 200:
+        logger.error('The bind statistics page did\'t respond correctly to the request. http status code is %s.', response.status_code)
+        logger.error('URL:%s', BIND_STATISTICS_URL)
+        logger.error('Response:%s', response)
+        sys.exit()
+
+    return response.json()
+
 # Load configuration
 inifile = configparser.SafeConfigParser()
 inifile.read('/opt/tools/bind_statistics/conf/bind_statistics_monitor.ini', encoding='utf-8')
 LOG_PATH = inifile.get('Settings','LOG_PATH')
+LOG_LEVEL = inifile.get('Settings','LOG_LEVEL')
 BIND_STATISTICS_URL = inifile.get('Settings','BIND_STATISTICS_URL')
 ELEMENT = inifile.get('Settings', 'ELEMENT')
 ELEMENTS = ELEMENT.split()
@@ -26,35 +71,9 @@ ZABBIX_HOST = inifile.get('Settings', 'ZABBIX_HOST')
 ZABBIX_SENDER = inifile.get('Settings', 'ZABBIX_SENDER')
 ZABBIX_SENDER_OPS = inifile.get('Settings', 'ZABBIX_SENDER_OPS')
 
-# ログの出力名を設定
-logger = logging.getLogger(__name__)
 
-# ログレベルの設定
-logger.setLevel(20)
-
-# ログのファイル出力先を設定
-fh = logging.FileHandler(LOG_PATH)
-logger.addHandler(fh)
-
-# ログの出力形式の設定
-formatter = logging.Formatter('time:%(asctime)s\tlinenum:%(lineno)d\tseverity:%(levelname)s\tmsg:%(message)s')
-fh.setFormatter(formatter)
-
-def bind_statistics_json_download():
-    logger.info('Sending request to %s.', BIND_STATISTICS_URL)
-    try:
-        response = requests.get(BIND_STATISTICS_URL, timeout=3)
-    except requests.exceptions.ConnectionError:
-        logger.warning('Connection refused from %s.', BIND_STATISTICS_URL)
-        sys.exit()
-
-    if response.status_code != 200:
-        logger.warning('The bind statistics page did\'t respond correctly to the request. http status code is %s.', response.status_code)
-        print (BIND_STATISTICS_URL)
-        print (response)
-        sys.exit()
-
-    return response.json()
+# ログ設定
+logger = set_logger(LOG_PATH, LOG_LEVEL)
 
 # BINDのstatisticsをJSON形式でダウンロード
 bind_statistics_json = bind_statistics_json_download()
@@ -86,6 +105,9 @@ ZABBIX_SENDER_CMD = str(ZABBIX_SENDER)+" -z "+str(ZABBIX_SERVER)+" -i "+str(OUTP
 zabbix_senders = ZABBIX_SENDER_CMD.split()
 try:
     res = subprocess.check_call(zabbix_senders)
+    logger.info('zabbix_senders executed. %s', res)
 except:
     logger.warning('execution failed.')
     logger.warning('command:%s', ZABBIX_SENDER)
+    sys.exit()
+
