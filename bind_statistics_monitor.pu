@@ -1,0 +1,20 @@
+@startuml
+title bind_statistics_monitor.py シーケンス図
+cron -> bind_statistics_monitor : bind_statistics_monitorを起動する
+activate bind_statistics_monitor
+bind_statistics_monitor -> BIND : http://localhost:8080/json
+activate BIND
+bind_statistics_monitor <-- BIND : StatisticsPageをレスポンス
+deactivate BIND
+bind_statistics_monitor -> bind_statistics_monitor : ファイル生成
+bind_statistics_monitor -> zabbix_sender : 実行
+activate zabbix_sender
+zabbix_sender -> ZabbixServer : アイテム登録
+activate ZabbixServer
+zabbix_sender <-- ZabbixServer : 結果応答
+deactivate ZabbixServer
+bind_statistics_monitor <-- zabbix_sender : 結果応答
+deactivate zabbix_sender
+cron <-- bind_statistics_monitor : 結果応答
+deactivate bind_statistics_monitor
+@enduml
