@@ -2,12 +2,17 @@
 title bind_statistics_monitor.py シーケンス図
 cron -> bind_statistics_monitor : bind_statistics_monitorを起動する
 activate bind_statistics_monitor
+bind_statistics_monitor -> bind_statistics_monitor : モジュールロード
+bind_statistics_monitor -> bind_statistics_monitor : ログ設定
 bind_statistics_monitor -> BIND : http://localhost:8080/json
 activate BIND
-bind_statistics_monitor <-- BIND : StatisticsPageをレスポンス
+bind_statistics_monitor <-- BIND : StatisticsPage(JSON)をレスポンス
 deactivate BIND
-bind_statistics_monitor -> bind_statistics_monitor : ファイル生成
-bind_statistics_monitor -> zabbix_sender : 実行
+bind_statistics_monitor -> zabbix_sender_file.txt : nsstats の情報を出力
+bind_statistics_monitor -> zabbix_sender_file.txt : opcodes の情報を出力
+bind_statistics_monitor -> zabbix_sender_file.txt : qtypes の情報を出力
+bind_statistics_monitor -> zabbix_sender_file.txt : rcodes の情報を出力
+bind_statistics_monitor -> zabbix_sender : zabbix_senderコマンドを実行
 activate zabbix_sender
 zabbix_sender -> ZabbixServer : アイテム登録
 activate ZabbixServer
