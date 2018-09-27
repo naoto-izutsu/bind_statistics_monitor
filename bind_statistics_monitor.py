@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 from datetime import datetime, date, timedelta
-from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, INFO, WARNING
+from logging import getLogger, StreamHandler, Formatter, FileHandler, DEBUG, WARNING, ERROR, INFO
 import configparser
 import json
 import pytz
@@ -11,7 +11,8 @@ import requests
 import subprocess
 import sys
 
-def set_logger(logFile, error_level):
+# ロガー定義
+def set_logger(self, logFile, error_level):
     # ログの出力名を設定
     logger = getLogger(__name__)
 
@@ -32,8 +33,14 @@ def set_logger(logFile, error_level):
 
     return logger
 
+
+# ログ出力
+def write_log(self, severity="", message=""):
+    logger.error('%s', message)
+
+
 # BIND StatisticsページからJson形式で情報をダウンロードする関数
-def bind_statistics_json_download():
+def bind_statistics_json_download(self):
     logger.info('Sending request to %s.', BIND_STATISTICS_URL)
     try:
         response = requests.get(BIND_STATISTICS_URL, timeout=3)
@@ -43,12 +50,15 @@ def bind_statistics_json_download():
         sys.exit()
 
     if response.status_code != 200:
+        message = 'The bind statistics page did\'t respond correctly to the request. URL=' +BIND_STATISTICS_URL +' http_status_code=' + response.status_code + ' response_time=' + response.elapsed.total_seconds()
+        write_log('ERROR', message)
         logger.error('The bind statistics page did\'t respond correctly to the request. http_status_code=%s response_time=%s', response.status_code, response.elapsed.total_seconds())
         logger.error('URL:%s', BIND_STATISTICS_URL)
         logger.error('Response:%s', response)
         sys.exit()
 
     return response.json()
+
 
 if __name__ == '__main__':
     # Load configuration
